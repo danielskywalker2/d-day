@@ -69,6 +69,17 @@ lighting.patchScene();
 assets.onTemplateMaterial((m) => { for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap']) { const t = m[k]; if (t && t.anisotropy < 8) { t.anisotropy = 8; if (t.image) t.needsUpdate = true; } } });
 renderer.setQuality(PARAMS.get('gfx') === 'legacy' ? 'legacy' : 'high');
 // ?pr=1.5 처럼 고정 해상도로 실행(측정용), 자가 테스트에서는 동적 해상도를 끈다
+// 화질: '자동'(동적 해상도) 또는 '최고'(항상 화면 최대 해상도 — 노트북과 같음). 일시정지 화면에서 바꾸고 이 기기에 기억한다
+const QKEY = 'dday-quality';
+function applyQuality(q) {
+  try { localStorage.setItem(QKEY, q); } catch (_) { /* 저장소를 못 쓰는 환경 */ }
+  renderer.adaptive = q !== 'max' && !PARAMS.has('selftest') && !PARAMS.has('pr');
+  if (q === 'max') { renderer.gl.setPixelRatio(renderer.prMax); renderer.resize(); }
+  const b = $('qualityBtn'); if (b) b.textContent = q === 'max' ? '화질: 최고 (항상 선명)' : '화질: 자동 (느려지면 낮춤)';
+}
+let quality = 'auto'; try { quality = localStorage.getItem(QKEY) === 'max' ? 'max' : 'auto'; } catch (_) { /* 기본값 */ }
+applyQuality(quality);
+$('qualityBtn').addEventListener('click', (e) => { e.stopPropagation(); quality = quality === 'max' ? 'auto' : 'max'; applyQuality(quality); });
 if (PARAMS.has('pr')) { renderer.adaptive = false; renderer.gl.setPixelRatio(+PARAMS.get('pr') || 1); renderer.resize(); }
 if (PARAMS.has('selftest')) renderer.adaptive = false;
 
@@ -420,8 +431,7 @@ const touch = createTouchControls({
   jump: (d) => { keys.Space = d; }, weapon: () => switchTo((wp.i + 1) % WEAPONS.length), pause: () => setPaused(true),
   state: () => ({ crouch: player.crouch, aim: cur().def.scope ? wp.scoped : mouseR }),
   onEnable: () => {
-    // 아이패드 GPU 에 맞춰 내부 해상도를 낮게 시작(동적 해상도가 이어서 조절)
-    renderer.prMax = Math.min(renderer.prMax, 1.5); renderer.prMin = .6; if (renderer.pixelRatio > 1.25) { renderer.gl.setPixelRatio(1.25); renderer.resize(); }
+    // 해상도는 노트북과 같은 규칙(픽셀 비율 최대 2, 동적 해상도)을 쓴다
     queueMicrotask(touchTexts);   // 이 호출은 touch 가 만들어지는 도중일 수 있다
   },
 });

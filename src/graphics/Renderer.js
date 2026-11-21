@@ -158,17 +158,34 @@ export class Renderer {
   }
 
   /**
-   * 실제 프레임 간격(ms)을 받아 60fps 를 지키도록 픽셀 비율을 조정한다.
-   * 1초 넘게 평균 18ms(약 55fps)보다 느리면 0.15 내리고, 4초 넘게 12.5ms 보다 빠르면 0.1 올린다. 바꾼 뒤 2초는 그대로 둔다.
+   * 실제 프레임 간격(ms)을 받아 화면 주사율을 지키도록 픽셀 비율을 조정한다.
+   * 화면 주사율(vsync, 가장 짧은 프레임 간격으로 추정: 120Hz 8.3ms · 60Hz 16.7ms · 저전력 30fps 33.3ms)을 기준으로
+   *  - 1초 넘게 평균이 주사율보다 확실히 느리면(18ms 와 주사율×1.35 중 큰 값) 0.15 내린다
+   *  - 3초 넘게 주사율에 붙어 있으면(12.5ms 와 주사율×1.2 중 큰 값) 0.1 올린다 — 60Hz 화면(아이패드 등)에서도 원래 해상도로 돌아온다
+   *  - 낮춘 뒤 2.5초마다 확인해 프레임이 10% 넘게 빨라지지 않으면 한 단계 더(최대 4단계) 내려 보고, 그래도 그대로면 해상도 탓이 아니므로(CPU·브라우저 제한) 되돌리고 한동안(30초부터 두 배씩, 최대 4분) 낮추지 않는다
+   *  - 느려서 내렸던 단계로 다시 올릴 때는 12초를 기다려 오르내림을 반복하지 않는다. 바꾼 뒤 2초는 그대로 둔다
    */
   adapt(frameMs) {
     const a = this._adapt; if (!this.adaptive || !(frameMs > 0) || frameMs > 100) return;
-    a.ema += (frameMs - a.ema) * .08; const dt = frameMs / 1000; a.coolT -= dt;
-    if (a.ema > 18) { a.slowT += dt; a.fastT = 0; } else if (a.ema < 12.5) { a.fastT += dt; a.slowT = 0; } else { a.slowT = a.fastT = 0; }
+    if (a.vsync === undefined) { a.vsync = frameMs; a.failPr = 99; }
+    // 주사율 추정 = 가장 짧은 프레임 간격을 따라가고 아주 천천히(약 20초) 풀린다. 처음부터 30fps 로 묶인 기기(저전력 모드)는 33ms 로 잡힌다.
+    // 60Hz 기기가 GPU 가 느려 30fps 로 떨어진 것과 도중에 30fps 로 묶인 것은 간격만으로 구분이 안 되므로, 아래의 '낮춰 보고 빨라졌는지' 확인으로 가른다
+    const dt = frameMs / 1000;
+    a.vsync = frameMs < a.vsync ? Math.max(4, frameMs) : a.vsync + (frameMs - a.vsync) * .0015;
+    a.ema += (frameMs - a.ema) * .08; a.coolT -= dt;
+    const slowMs = Math.max(18, a.vsync * 1.35), fastMs = Math.max(12.5, a.vsync * 1.2);   // 60Hz 의 흔들림(15~18ms)은 '빠름'으로 본다
+    if (a.ema > slowMs) { a.slowT += dt; a.fastT = 0; } else if (a.ema < fastMs) { a.fastT += dt; a.slowT = 0; } else { a.slowT = a.fastT = 0; }
     const pr = this.gl.getPixelRatio(); let next = pr;
-    if (a.coolT <= 0 && a.slowT > 1 && pr > this.prMin) next = Math.max(this.prMin, pr - .15);
-    else if (a.coolT <= 0 && a.fastT > 4 && pr < this.prMax) next = Math.min(this.prMax, pr + .1);
-    if (next !== pr) { this.gl.setPixelRatio(next); this.resize(); a.coolT = 2; a.slowT = a.fastT = 0; }
+    a.noGainT = (a.noGainT || 0) - dt;
+    // 낮춘 뒤 2.5초: 프레임이 10% 넘게 빨라지지 않았으면 해상도 탓이 아니다(CPU·브라우저 제한 등) → 되돌리고 한동안(30초부터 두 배씩, 최대 4분) 낮추지 않는다
+    // 주사율에 맞춰 프레임이 끊어지므로(60Hz 면 16.7·33.3ms) 한 단계로는 빨라지지 않을 수 있어 최대 4단계(약 70%)까지 내려 본다
+    if (a.probe && (a.probe.t += dt) > 2.5) {
+      if (a.ema < a.probe.ema * .9) a.probe = null;                                                                 // 빨라졌다 → 유지
+      else if (a.probe.steps < 4 && pr > this.prMin) { next = Math.max(this.prMin, pr - .15); a.probe.steps++; a.probe.t = 0; }
+      else { next = a.probe.from; a.block = Math.min(240, (a.block || 15) * 2); a.noGainT = a.block; a.failPr = 99; a.probe = null; }   // 30·60·120·240초                                // 소용없다 → 되돌림
+    } else if (a.coolT <= 0 && a.slowT > 1 && pr > this.prMin && a.noGainT <= 0 && !a.probe) { next = Math.max(this.prMin, pr - .15); a.failPr = pr; a.probe = { from: pr, ema: a.ema, t: 0, steps: 1 }; }
+    else if (a.coolT <= 0 && a.fastT > (pr + .1 >= a.failPr - 1e-3 ? 12 : 3) && pr < this.prMax) next = Math.min(this.prMax, pr + .1);
+    if (next !== pr) { this.gl.setPixelRatio(next); this.resize(); a.coolT = 2; a.slowT = a.fastT = 0; if (next >= a.failPr - 1e-3) a.failPr = 99; }
   }
   get pixelRatio() { return this.gl.getPixelRatio(); }
 
