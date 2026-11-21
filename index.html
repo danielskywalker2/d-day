@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<meta name="apple-mobile-web-app-title" content="D-DAY">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+<title>D-DAY: FROM OMAHA TO THE REICH</title>
+<style>
+  :root { --amber:#e8c97a; --olive:#5d6b3a; --red:#c8342b; --ink:#0c0e0d; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; color:var(--amber);
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  body:not(.touch) .touchonly { display:none !important; } body.touch .kbonly { display:none !important; }
+  canvas { display:block; position:fixed; inset:0; width:100%; height:100%; touch-action:none; }
+
+  #hud { position:fixed; inset:0; pointer-events:none; display:none; }
+  .panel { position:absolute; text-shadow:0 2px 0 #000, 0 0 12px rgba(0,0,0,.8); }
+  #health { left:28px; bottom:22px; }
+  #ammo { right:28px; bottom:22px; text-align:right; }
+  .label { font-size:12px; letter-spacing:.25em; opacity:.75; }
+  .big { font-size:54px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+  .big small { font-size:22px; opacity:.7; font-weight:600; }
+  #hpbar { width:220px; height:8px; background:rgba(0,0,0,.55); border:1px solid rgba(232,201,122,.5); margin-top:6px; }
+  #hpfill { height:100%; width:100%; background:var(--amber); transition:width .15s; }
+  #weapon { font-size:16px; letter-spacing:.12em; margin-bottom:2px; }
+  #grenades { font-size:14px; margin-top:6px; opacity:.9; }
+  #objective { left:20px; top:16px; max-width:440px; padding:10px 14px 10px 12px; background:linear-gradient(90deg, rgba(8,10,8,.62), rgba(8,10,8,.28)); border-left:3px solid rgba(232,201,122,.7); }
+  #objective .t { font-size:19px; font-weight:700; margin-top:4px; }
+  #enemies { right:28px; top:22px; text-align:right; }
+  #enemies .t { font-size:19px; font-weight:700; margin-top:4px; }
+
+  #cross { position:absolute; left:50%; top:50%; width:0; height:0; }
+  #cross i { position:absolute; background:rgba(255,255,255,.85); box-shadow:0 0 2px #000; }
+  #cross i:nth-child(1){ width:2px; height:9px; left:-1px; top:calc(-9px - var(--gap,7px)); }
+  #cross i:nth-child(2){ width:2px; height:9px; left:-1px; top:var(--gap,7px); }
+  #cross i:nth-child(3){ height:2px; width:9px; top:-1px; left:calc(-9px - var(--gap,7px)); }
+  #cross i:nth-child(4){ height:2px; width:9px; top:-1px; left:var(--gap,7px); }
+  #cross b { position:absolute; width:2px; height:2px; left:-1px; top:-1px; background:#fff; }
+  #slots { position:absolute; right:28px; bottom:132px; text-align:right; font-size:12px; letter-spacing:.06em; line-height:1.75; text-shadow:0 1px 0 #000, 0 0 8px rgba(0,0,0,.8); }
+  #slots div { opacity:.45; transition:opacity .15s; } #slots div.on { opacity:1; color:#fff3cf; }
+  #slots kbd { font:inherit; display:inline-block; min-width:16px; padding:0 4px; margin-right:6px; border:1px solid rgba(232,201,122,.6); border-radius:3px; text-align:center; }
+  /* 스코프: 원형 시야 + 바깥 마스킹 + 레티클. --r 반지름, --kx/--ky 반동으로 튀는 양 */
+  #scope { position:absolute; inset:0; opacity:0; --r:42vmin; --kx:0px; --ky:0px; }
+  #scope .mask { position:absolute; inset:-20vmax; transform:translate(var(--kx), var(--ky));
+    background:radial-gradient(circle at center, transparent 0, transparent calc(var(--r) - 2px), rgba(0,0,0,.55) calc(var(--r) - 1px), #050505 calc(var(--r) + 6px), #000 100%); }
+  #scope .lens { position:absolute; left:50%; top:50%; width:calc(var(--r) * 2); height:calc(var(--r) * 2); margin:calc(var(--r) * -1) 0 0 calc(var(--r) * -1); border-radius:50%;
+    transform:translate(var(--kx), var(--ky)); box-shadow:inset 0 0 calc(var(--r) * .22) calc(var(--r) * .06) rgba(0,0,0,.92), inset 0 0 2px 1px rgba(255,255,255,.08);
+    background:radial-gradient(circle at 38% 32%, rgba(190,210,255,.07), transparent 45%); }
+  #scope svg { position:absolute; inset:0; width:100%; height:100%; }
+  #scope .sinfo { position:absolute; left:50%; bottom:calc(50% - var(--r) - 34px); transform:translateX(-50%); font-size:12px; letter-spacing:.2em; color:#cfc7ad; text-shadow:0 1px 0 #000; white-space:nowrap; }
+  #scope .breath { display:inline-block; width:70px; height:4px; margin-left:10px; vertical-align:middle; background:rgba(255,255,255,.15); }
+  #scope .breath i { display:block; height:100%; width:100%; background:#cfc7ad; }
+
+  #hit { position:absolute; left:50%; top:50%; width:34px; height:34px; margin:-17px 0 0 -17px; opacity:0; transform:scale(1); }
+  #hit::before, #hit::after { content:""; position:absolute; left:50%; top:50%; width:3px; height:34px; margin:-17px 0 0 -1.5px;
+    background:linear-gradient(#fff 0 32%, transparent 32% 68%, #fff 68%); box-shadow:0 0 3px #000; }
+  #hit::before { transform:rotate(45deg); } #hit::after { transform:rotate(-45deg); }
+  #hit.kill::before, #hit.kill::after { background:linear-gradient(#ff3b2e 0 32%, transparent 32% 68%, #ff3b2e 68%); }
+
+  #vig { position:absolute; inset:0; opacity:0;
+    background:radial-gradient(ellipse at center, transparent 35%, rgba(180,10,0,.75) 100%); }
+  #flash { position:absolute; inset:0; background:#fff3d0; opacity:0; }
+  #msg { position:absolute; left:50%; top:62%; transform:translateX(-50%); font-size:18px; font-weight:700;
+    letter-spacing:.1em; text-shadow:0 2px 0 #000; opacity:0; transition:opacity .25s; white-space:nowrap; }
+  #banner { position:absolute; left:50%; top:26%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .6s;
+    text-shadow:0 3px 0 #000, 0 0 30px #000; }
+  #banner .a { font-size:13px; letter-spacing:.5em; }
+  #banner .b { font-size:clamp(22px,2.6vw,40px); font-weight:900; letter-spacing:.06em; margin-top:6px; max-width:80vw; }
+
+  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center, rgba(20,24,22,.82), rgba(0,0,0,.96)); text-align:center; padding:24px; cursor:pointer; }
+  .overlay h1 { font-size:clamp(40px,8vw,92px); margin:0; letter-spacing:.06em; font-weight:900; color:#efe2b8;
+    text-shadow:0 4px 0 #000, 0 0 40px rgba(232,201,122,.25); }
+  .overlay h2 { font-size:15px; letter-spacing:.5em; margin:0 0 14px; font-weight:600; opacity:.85; }
+  .overlay p { max-width:640px; line-height:1.7; color:#cfc7ad; margin:18px 0 0; }
+  .keys { display:grid; grid-template-columns:repeat(2, auto); gap:6px 34px; margin-top:26px; text-align:left; font-size:14px; color:#cfc7ad; }
+  .keys b { color:var(--amber); display:inline-block; min-width:112px; }
+  .keys.touchonly { grid-template-columns:1fr; gap:5px; } .keys.touchonly b { min-width:120px; }
+  .go { margin-top:34px; font-size:18px; letter-spacing:.3em; padding:12px 28px; border:2px solid var(--amber); animation:pulse 1.4s infinite; }
+  @keyframes pulse { 50% { opacity:.45; } }
+  .note { margin-top:14px; min-height:1em; font-size:13px; color:#d9a46a; letter-spacing:.04em; }
+  #pause, #dead, #win { display:none; }
+  #dead h1 { color:var(--red); }
+  .stats { margin-top:18px; font-size:16px; line-height:1.9; color:#cfc7ad; }
+  .stats b { color:var(--amber); }
+
+  /* ---- 캠페인: 작전 지도(스테이지 선택) · 브리핑 · 스테이지 완료 ---- */
+  .screen { position:fixed; inset:0; display:none; overflow:auto; background:radial-gradient(ellipse at 50% 20%, rgba(34,38,30,.96), rgba(4,5,4,.99)); cursor:default; padding:34px 28px 40px; }
+  .screen.on { display:block; }
+  .screen .wrap { max-width:1180px; margin:0 auto; }
+  .camp-head h2 { font-size:13px; letter-spacing:.5em; margin:0 0 10px; opacity:.8; font-weight:600; }
+  .camp-head h1 { margin:0; font-size:clamp(28px,4.4vw,54px); letter-spacing:.04em; color:#efe2b8; font-weight:900; text-shadow:0 3px 0 #000; }
+  .camp-head p { margin:10px 0 0; color:#cfc7ad; font-size:15px; }
+  .timeline { position:relative; display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; margin-top:30px; }
+  .timeline::before { content:""; position:absolute; left:4%; right:4%; top:22px; height:2px; background:linear-gradient(90deg, rgba(232,201,122,.65), rgba(232,201,122,.15)); }
+  .card { position:relative; border:1px solid rgba(232,201,122,.28); background:rgba(10,12,10,.75); border-radius:6px; overflow:hidden; display:flex; flex-direction:column; transition:transform .15s, border-color .15s; }
+  .card .dot { position:absolute; top:13px; left:14px; z-index:2; width:20px; height:20px; border-radius:50%; background:#0c0e0d; border:2px solid var(--amber); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .card .img { height:132px; background:#1a1d18 center/cover no-repeat; position:relative; }
+  .card .img .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; letter-spacing:.3em; color:rgba(232,201,122,.45); background:repeating-linear-gradient(135deg, rgba(232,201,122,.05) 0 10px, transparent 10px 20px); }
+  .card .body { padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; flex:1; }
+  .card .code { font-size:11px; letter-spacing:.22em; opacity:.8; }
+  .card .ttl { font-size:19px; font-weight:800; color:#efe2b8; }
+  .card .meta { font-size:12px; color:#bdb59c; line-height:1.5; }
+  .card .st { margin-top:auto; padding-top:8px; font-size:12px; letter-spacing:.12em; font-weight:700; }
+  .card.done .st { color:#9fd18b; } .card.open .st { color:var(--amber); } .card.locked .st, .card.soon .st { color:#8a8576; }
+  .card.locked { opacity:.55; } .card.locked .img, .card.soon .img { filter:grayscale(1) brightness(.6); }
+  .card.open, .card.done { cursor:pointer; } .card.open:hover, .card.done:hover { transform:translateY(-3px); border-color:var(--amber); }
+  .card.open { box-shadow:0 0 0 1px rgba(232,201,122,.5), 0 0 24px rgba(232,201,122,.12); }
+  .camp-foot { margin-top:22px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; color:#8a8576; }
+  .btn { display:inline-block; font:inherit; color:var(--amber); background:transparent; border:2px solid var(--amber); padding:11px 26px; font-size:16px; letter-spacing:.22em; cursor:pointer; }
+  .btn:hover { background:rgba(232,201,122,.12); } .btn[disabled] { opacity:.45; cursor:default; animation:none; }
+  .btn.ghost { border-color:rgba(232,201,122,.4); color:#cfc7ad; font-size:14px; padding:9px 18px; }
+  .btn.main { animation:pulse 1.4s infinite; }
+  .link { background:none; border:0; color:#8a8576; font:inherit; font-size:12px; text-decoration:underline; cursor:pointer; }
+  .brief { display:grid; grid-template-columns:1.2fr 1fr; gap:28px; margin-top:24px; }
+  .brief h3 { margin:0 0 8px; font-size:12px; letter-spacing:.3em; opacity:.8; font-weight:700; }
+  .brief .box { border-left:2px solid rgba(232,201,122,.45); padding:2px 0 2px 14px; margin-bottom:20px; color:#d8d0b6; line-height:1.75; font-size:15px; }
+  .brief .tag { display:inline-block; font-size:10px; letter-spacing:.15em; padding:1px 6px; border:1px solid currentColor; margin-left:6px; vertical-align:2px; opacity:.8; }
+  .brief ol { margin:0; padding-left:20px; color:#d8d0b6; line-height:1.9; font-size:15px; }
+  .brief .keys { margin-top:4px; }
+  .brief-actions { margin-top:26px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .outro { max-width:720px; margin:18px auto 0; color:#d8d0b6; line-height:1.8; font-size:16px; }
+  .nextline { margin-top:12px; color:var(--amber); letter-spacing:.08em; font-size:14px; }
+  .center-actions { margin-top:28px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  @media (max-width: 900px) { .timeline { grid-template-columns:1fr 1fr; } .timeline::before { display:none; } .brief { grid-template-columns:1fr; } }
+
+  /* HUD 목표 목록과 목표 표시기 */
+  #objList { margin-top:6px; font-size:13px; line-height:1.65; }
+  #objList div { opacity:.5; } #objList div.done { opacity:.55; text-decoration:line-through; color:#9fd18b; } #objList div.active { opacity:1; font-size:16px; font-weight:700; color:#fff3cf; }
+  #objList .pg { display:block; font-size:12px; font-weight:600; color:var(--amber); text-decoration:none; }
+  #objMarker { position:absolute; left:0; top:0; transform:translate(-50%,-50%); text-align:center; font-size:12px; font-weight:700; color:#fff3cf; text-shadow:0 1px 0 #000, 0 0 6px #000; opacity:0; white-space:nowrap; }
+  #objMarker i { display:block; width:12px; height:12px; margin:0 auto 2px; border:2px solid #ffd27a; transform:rotate(45deg); box-shadow:0 0 6px rgba(0,0,0,.8); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="vig"></div>
+  <div id="flash"></div>
+  <div id="scope">
+    <div class="mask"></div>
+    <div class="lens"><svg viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid meet">
+      <g stroke="#0a0a0a" fill="#0a0a0a">
+        <line x1="-100" y1="0" x2="100" y2="0" stroke-width=".45"/>
+        <line x1="0" y1="-100" x2="0" y2="0" stroke-width=".45"/>
+        <path d="M-1.6 100 L-1.6 6 L0 0 L1.6 6 L1.6 100 Z" stroke="none"/>
+        <rect x="-100" y="-1.2" width="58" height="2.4" stroke="none"/><rect x="42" y="-1.2" width="58" height="2.4" stroke="none"/>
+      </g></svg></div>
+    <div class="sinfo">M1903A4 · 4×<span class="kbonly"> · Shift 숨 참기</span> <span class="breath"><i id="breathBar"></i></span></div>
+  </div>
+  <div id="cross"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="slots"></div>
+  <div id="hit"></div>
+  <div class="panel" id="objective"><div class="label" id="objStage">임무</div><div class="t" id="objT" style="display:none"></div><div id="objList"></div></div>
+  <div id="objMarker"><i></i><span id="objDist"></span></div>
+  <div class="panel" id="enemies"><div class="label">남은 적</div><div class="t" id="enT"></div><div class="label" id="alT" style="margin-top:6px;font-size:13px;letter-spacing:.12em"></div></div>
+  <div class="panel" id="health"><div class="label">체력</div><div class="big" id="hp">100</div><div id="hpbar"><div id="hpfill"></div></div></div>
+  <div class="panel" id="ammo"><div id="weapon"></div><div class="big"><span id="mag">8</span> <small>/ <span id="res">72</span></small></div><div id="grenades"></div></div>
+  <div id="msg"></div>
+  <div id="banner"><div class="a" id="banA"></div><div class="b" id="banB"></div></div>
+</div>
+
+<!-- 첫 화면: 에셋을 불러오는 동안 보이는 제목. 다 불러오면 작전 지도로 넘어간다 -->
+<div class="overlay" id="start">
+  <h2>1944 · WESTERN FRONT</h2>
+  <h1>D-DAY</h1>
+  <p>FROM OMAHA TO THE REICH</p>
+  <div class="go" id="startGo">전장 불러오는 중…</div>
+  <div class="note" id="assetNote"></div>
+</div>
+
+<!-- 작전 지도: 5개 스테이지 타임라인 -->
+<div class="screen" id="campaign"><div class="wrap">
+  <div class="camp-head"><h2>CAMPAIGN · 1944</h2><h1 id="campTitle"></h1><p id="campSub"></p></div>
+  <div class="timeline" id="timeline"></div>
+  <div class="camp-foot"><span id="campNote"></span><button class="link" id="campReset">진행 기록 초기화</button></div>
+</div></div>
+
+<!-- 스테이지 브리핑 -->
+<div class="screen" id="briefing"><div class="wrap">
+  <div class="camp-head"><h2 id="brCode"></h2><h1 id="brTitle"></h1><p id="brMeta"></p></div>
+  <div class="brief">
+    <div>
+      <h3>역사적 배경 <span class="tag">실제 역사</span></h3><div class="box" id="brHistory"></div>
+      <h3>분대 임무 <span class="tag">창작</span></h3><div class="box" id="brMission"></div>
+      <h3>작전 목표</h3><ol id="brObjectives"></ol>
+    </div>
+    <div>
+      <h3>조작</h3>
+  <div class="keys touchonly">
+    <div><b>왼쪽 화면</b>누르고 밀어서 이동 (끝까지 밀면 질주)</div><div><b>오른쪽 화면</b>끌어서 시점 회전</div>
+    <div><b>사격</b>누르는 동안 사격 · 누른 채 끌어 조준</div><div><b>조준</b>정밀 조준 켜기/끄기 (저격총은 스코프)</div>
+    <div><b>장전 · 수류탄</b>버튼을 탭</div><div><b>점프 · 앉기</b>버튼을 탭 (앉으면 덜 맞음)</div>
+    <div><b>무기</b>다음 무기로 교체</div><div><b>❚❚</b>일시정지</div>
+    <div><b>조준 보조</b>적 가까이 겨누면 살짝 붙음</div><div><b>체력</b>Stage 2부터는 잠시 숨으면 다시 찬다</div>
+  </div>
+  <div class="keys kbonly">
+    <div><b>W A S D</b>이동</div><div><b>마우스 좌클릭</b>사격</div>
+    <div><b>Shift</b>질주 (스코프 중: 숨 참기)</div><div><b>마우스 우클릭</b>조준 · 저격총은 스코프 켜기/끄기</div>
+    <div><b>C</b>앉기 (명중률↓ 회피)</div><div><b>R</b>재장전</div>
+    <div><b>Space</b>점프</div><div><b>G</b>수류탄</div>
+    <div><b>1 / 2 / 3 / 4 · 휠</b>무기 교체</div><div><b>Esc</b>일시정지</div>
+    <div><b>방향키</b>시점 회전 (보조)</div><div><b>F</b>무기 점검</div>
+  </div>
+    </div>
+  </div>
+  <div class="brief-actions"><button class="btn main" id="brGo">출격</button><button class="btn ghost" id="brBack">작전 지도로</button><span class="note" id="brNote"></span></div>
+</div></div>
+
+<div class="overlay" id="pause"><h2>일시정지</h2><h1>대기 중</h1><div class="go">클릭하여 계속</div></div>
+<div class="overlay" id="dead" style="cursor:default"><h2 id="deadCode">오마하 해변</h2><h1>전사</h1><div class="stats" id="deadStats"></div>
+  <div class="center-actions"><button class="btn main" id="deadCont">이어서 하기</button><button class="btn ghost" id="deadRetry">처음부터</button><button class="btn ghost" id="deadMap">작전 지도로</button></div></div>
+<div class="overlay" id="win" style="cursor:default"><h2 id="winCode">STAGE 1 · OMAHA BEACH</h2><h1 id="winTitle">작전 성공</h1><div class="stats" id="winStats"></div>
+  <div class="outro" id="winOutro"></div><div class="nextline" id="winNext"></div>
+  <div class="center-actions"><button class="btn main" id="winNextBtn">다음 스테이지</button><button class="btn ghost" id="winMap">작전 지도로</button><button class="btn ghost" id="winAgain">다시 플레이</button></div></div>
+
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script type="module" src="./game.js"></script>
+</body>
+</html>

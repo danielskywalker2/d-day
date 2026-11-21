@@ -1,0 +1,202 @@
+{
+  "$comment": "D-DAY 모델 슬롯. null 이면 코드로 만든 기본 모델을 씁니다. 형식은 docs/ASSETS.md 참고.",
+  "models": {
+    "weapons.garand": {
+      "url": "weapons/m1_garand_violence.glb",
+      "credit": "Emi @ Violence (CC0)",
+      "parts": {
+        "bolt": "m1bolt",
+        "clip": "m1clip"
+      },
+      "boltTravel": 0.05,
+      "materials": {
+        "wood": "wood",
+        "metal": "steel",
+        "darker": "dark",
+        "clip": "steel"
+      },
+      "gripR": [
+        0.014,
+        -0.085,
+        0.12
+      ],
+      "gripL": [
+        -0.012,
+        -0.045,
+        -0.3
+      ],
+      "adsY": -0.003
+    },
+    "weapons.thompson": {
+      "url": "weapons/thompson_violence.glb",
+      "credit": "Emi @ Violence (CC0)",
+      "parts": {
+        "bolt": "thompsonbolt",
+        "mag": "thompsonmagazine"
+      },
+      "boltTravel": 0.05,
+      "materials": {
+        "wood": "wood",
+        "metal": "steel",
+        "darker": "dark"
+      },
+      "gripR": [
+        0.012,
+        -0.075,
+        0.07
+      ],
+      "gripL": [
+        -0.012,
+        -0.06,
+        -0.25
+      ],
+      "adsY": 0.012
+    },
+    "weapons.trench": null,
+    "characters.german": {
+      "url": "characters/soldier_de.glb",
+      "credit": "Quaternius (CC0) — Fantasy outfits Peasant + Universal Base Characters head + Universal Animation Library, recoloured"
+    },
+    "characters.american": {
+      "url": "characters/soldier_us.glb",
+      "credit": "Quaternius (CC0) — same, olive drab"
+    },
+    "props.crate": {
+      "url": "props/old_military_crate/old_military_crate_1k.gltf",
+      "fitMode": "stretch",
+      "credit": "Poly Haven (CC0)"
+    },
+    "props.hedgehog": null,
+    "props.boat": null,
+    "props.tank": null,
+    "pickups.medkit": null,
+    "pickups.ammo": {
+      "url": "props/ammo_box/ammo_box_1k.gltf",
+      "credit": "Poly Haven (CC0)"
+    },
+    "weapons.springfield": {
+      "url": "weapons/m1903a3.glb",
+      "credit": "Gintoki1234 (CC BY 4.0) + 코드로 만든 스코프",
+      "parts": {
+        "bolt": "Bolt",
+        "handle": "Bolt_Handle",
+        "round": "30-06_Springfield_Cartridge"
+      },
+      "hide": [
+        "30-06_Springfield_Cartridge_Fired"
+      ],
+      "partAt": {
+        "round": [
+          0,
+          0.05,
+          -0.03
+        ]
+      },
+      "attachScope": [
+        0,
+        0.018,
+        0.06
+      ],
+      "boltTravel": 0.1,
+      "handleOpen": 1.2,
+      "gripR": [
+        0.012,
+        -0.06,
+        0.11
+      ],
+      "gripL": [
+        -0.012,
+        -0.04,
+        -0.32
+      ]
+    },
+    "props.sandbag": {
+      "url": "props/cement_bag/cement_bag_1k.gltf",
+      "credit": "Poly Haven cement_bag (CC0) — 사대 모래주머니 형태로 사용"
+    },
+    "decor.jerrycan": {
+      "url": "props/metal_jerrycan_green/metal_jerrycan_green_1k.gltf",
+      "credit": "Poly Haven (CC0)",
+      "stages": [
+        1,
+        2
+      ]
+    },
+    "decor.barrel": {
+      "url": "props/barrel_03/barrel_03_1k.gltf",
+      "credit": "Poly Haven (CC0)",
+      "stages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "decor.tyre": {
+      "url": "props/old_tyre/old_tyre_1k.gltf",
+      "credit": "Poly Haven (CC0)",
+      "stages": [
+        1
+      ]
+    },
+    "decor.wheel": {
+      "url": "props/rusted_wheel_rim_01/rusted_wheel_rim_01_1k.gltf",
+      "credit": "Poly Haven (CC0)",
+      "stages": [
+        1
+      ]
+    },
+    "decor.crate": {
+      "url": "props/wooden_military_crate/wooden_military_crate_1k.gltf",
+      "credit": "Poly Haven (CC0)",
+      "stages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "decor.ammobox": {
+      "url": "props/ammo_box/ammo_box_1k.gltf",
+      "credit": "Poly Haven (CC0)",
+      "stages": [
+        1,
+        2,
+        5
+      ]
+    },
+    "props.table": {
+      "url": "props/dining_table/dining_table_1k.gltf",
+      "credit": "Poly Haven dining_table (CC0) — Stage 2 지휘소 탁자",
+      "stages": [
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "props.radio": {
+      "url": "props/vintage_radio_transceiver/vintage_radio_transceiver_1k.gltf",
+      "credit": "Poly Haven vintage_radio_transceiver (CC0) — Stage 2 지휘소 무전기",
+      "stages": [
+        2,
+        3,
+        5
+      ]
+    },
+    "props.streetlamp": {
+      "url": "props/street_lamp_02/street_lamp_02_1k.gltf",
+      "credit": "Poly Haven street_lamp_02 (CC0) — Stage 4 가로등",
+      "stages": [
+        4
+      ]
+    },
+    "props.chair": {
+      "url": "props/painted_wooden_chair_01/painted_wooden_chair_01_1k.gltf",
+      "credit": "Poly Haven painted_wooden_chair_01 (CC0) — Stage 4 바리케이드 가구",
+      "stages": [
+        4,
+        5
+      ]
+    }
+  },
+  "$stages": "슬롯의 \"stages\" 가 있으면 그 스테이지에서만 불러온다(없으면 모든 스테이지)"
+}

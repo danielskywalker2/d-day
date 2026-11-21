@@ -1,0 +1,16 @@
+{
+  "$comment": "테스트 전용 매니페스트(?models=test). 성공·텍스처 누락·깨진 파일·404 경로를 모두 거친다. node tools/make-test-models.mjs 로 파일을 만든다.",
+  "models": {
+    "weapons.garand": { "url": "_test/rifle.glb", "position": [0, 0, 0] },
+    "weapons.thompson": { "url": "_test/broken.glb" },
+    "weapons.trench": null,
+    "characters.german": { "url": "_test/soldier.glb" },
+    "characters.american": null,
+    "props.crate": { "url": "_test/crate.glb", "fitMode": "stretch" },
+    "props.hedgehog": { "url": "_test/missing_texture.gltf" },
+    "props.boat": null,
+    "props.tank": { "url": "_test/does_not_exist.glb" },
+    "pickups.medkit": null,
+    "pickups.ammo": { "url": "_test/crate.glb" }
+  }
+}
